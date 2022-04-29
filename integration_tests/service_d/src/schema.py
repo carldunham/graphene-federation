@@ -1,5 +1,5 @@
 from graphene import ObjectType, Int, Field
-from graphene_federation import build_schema, extend, external
+from graphene_federation import build_schema, extend, external, requires
 
 """
 Alphabet order - matters
@@ -8,9 +8,25 @@ https://github.com/preply/graphene-federation/issues/26#issuecomment-572127271
 """
 
 
-@extend(fields='id')
+@extend(fields="id")
+class User(ObjectType):
+    id = external(Int(required=True))
+
+
+@extend(fields="id")
 class Article(ObjectType):
     id = external(Int(required=True))
+    author = external(Field(lambda: User))
+    foo = requires(Int(required=True), fields="id author{id}")
+
+    def resolve_foo(self, info, **kwargs):
+        print(self.__dict__, str(info), kwargs)
+        return self.author.id
+
+    def __resolve_reference(self, info, **kwargs):
+        return Article(
+            id=self.id,
+        )
 
 
 class X(ObjectType):
